@@ -1,8 +1,12 @@
 import React, { Component } from 'react';
 import formatCurrency from '../util';
 import Fade from 'react-reveal/Fade';
-
-export default class Cart extends Component {
+import Zoom from 'react-reveal/Zoom';
+import Modal from 'react-modal';
+import {connect} from 'react-redux';
+import {removeFromCart} from '../actions/cartActions';
+import {createOrder,clearOrder} from '../actions/orderActions';
+class Cart extends Component {
 
     constructor(props){
         super(props);
@@ -26,13 +30,18 @@ export default class Cart extends Component {
             name:this.state.name,
             email:this.state.email,
             address:this.state.address,
-            cartItems:this.props.cartItems
+            cartItems:this.props.cartItems,
+            total:this.props.cartItems.reduce((a,c)=> a+(c.price *c.count),0)
         }
         this.props.createOrder(order);
     }
 
+    closeModal = () => {
+        this.props.clearOrder();
+    }
+
     render() {
-        const {cartItems, removeFromCart} = this.props;
+        const {cartItems, order} = this.props;
         return (
             <div>
                 <div>
@@ -45,6 +54,61 @@ export default class Cart extends Component {
                         </div>
                     }
                 </div>
+                {
+                    order && (
+                        <Modal
+                            isOpen={true}
+                            onRequestClose={this.closeModal}
+                        >
+                            <Zoom>
+                                <button 
+                                    className="close-modal"
+                                    onClick={this.closeModal}
+                                >
+                                    X
+                                </button>
+                                <div className="order-details">
+                                    <h3 className="success-message">
+                                        Your orders has been placed!
+                                    </h3>
+                                    <h2>Order {order._id}</h2>
+                                    <ul>
+                                        <li>
+                                            <div>Name:</div>
+                                            <div>{order.name}</div>
+                                        </li>
+                                        <li>
+                                            <div>Email:</div>
+                                            <div>{order.email}</div>
+                                        </li>
+                                        <li>
+                                            <div>Address:</div>
+                                            <div>{order.address}</div>
+                                        </li>
+                                        <li>
+                                            <div>Date:</div>
+                                            <div>{order.createAt}</div>
+                                        </li>
+                                        <li>
+                                            <div>Total:</div>
+                                            <div>{formatCurrency(order.total)}</div>
+                                        </li>
+                                        <li>
+                                            <div>Cart:</div>
+                                            <div>
+                                                {order.cartItems.map((x) =>(
+                                                    <div>
+                                                        {x.count} {" x "} {x.title}
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        </li>
+                                    </ul>
+                                </div>
+                            </Zoom>
+                        </Modal>
+                    ) 
+                }
                 <div className="cart">
                     <Fade left cascade>
                         <ul className="cart-items">
@@ -59,6 +123,7 @@ export default class Cart extends Component {
                                         </div> 
                                         <div className="right">
                                             {formatCurrency(item.price)} x {item.count} {" "}
+                                            {/* {item.price} x {item.count} {" "} */}
                                             <button className="button" onClick={()=> removeFromCart(item)}>
                                                 Remove
                                             </button>
@@ -126,3 +191,12 @@ export default class Cart extends Component {
         )
     }
 }
+
+const mapStateToProps = (state) => {
+    return {
+        order: state.order.order,
+        cartItems: state.cart.cartItems
+    }
+}
+
+export default connect(mapStateToProps,{removeFromCart,createOrder,clearOrder})(Cart)
